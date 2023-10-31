@@ -9,6 +9,9 @@ router.get("/login", (req, res) => {
 })
 
 router.get("/user", (req, res) => {
+    // #swagger.tags = ['Users']
+     // #swagger.summary = 'Get User'
+    // #swagger.description = 'Some description 1111...'
     const users = [
         {
             id: 1,
