@@ -2,6 +2,7 @@ const express = require("express")
 const app = express();
 const router = require("./routes/router.js");
 const productRouter = require("./routes/product.route.js");
+const userRouter = require("./routes/user.route.js");
 // npm install --save body-parser
 var bodyParser = require('body-parser')
 
@@ -15,6 +16,7 @@ app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
 const port = 8000
 
 app.use("/api", router)
+app.use("/api/user", userRouter)
 app.use("/api/products", productRouter)
 
 
