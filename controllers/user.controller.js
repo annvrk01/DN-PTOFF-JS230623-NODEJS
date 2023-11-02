@@ -1,7 +1,8 @@
 const fs = require('fs')
 
+// API Đăng ký
 const registerUser = (req, res) => {
-    const { username, email, password } = req.body
+    const { username, email, password } = req.body // get data request 
     let message = {
         username: '',
         email: '',
@@ -10,17 +11,17 @@ const registerUser = (req, res) => {
     let isValidate = false
 
     if (!username || username.trim().length < 3) {
-        message.username = 'user phai tren 3 ky tu.'
+        message.username = 'User phải trên 3 ký tự.'
         isValidate = true
     }
 
     if (!email || !/^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(email.trim())) {
-        message.email = 'email khong hop le.'
+        message.email = 'Email không hợp lệ.'
         isValidate = true
     }
 
     if (!password || password.trim().length < 8) {
-        message.password = 'password phai tren 8 ky tu.'
+        message.password = 'Password phải trên 8 ký tự.'
         isValidate = true
     }
 
@@ -28,15 +29,17 @@ const registerUser = (req, res) => {
         res.status(400).json(message)
     }
 
+    // get data từ file json
     let users = JSON.parse(fs.readFileSync('data/users.json'))
-
+    // findIndex tìm vị trí phần tử đầu tiên trong mãng thảo mãng điều kiện
     const userExisted = users.findIndex(user => user.email === email)
 
     if (userExisted !== -1) res.status(400).json({
-        message: 'Tai khoan da ton tai.'
+        message: 'Tài khoản đã tồn tại.'
     })
 
     const user = {
+        id : Math.floor(Math.random() * 1000),
         username: username,
         email: email,
         password: password
@@ -45,13 +48,14 @@ const registerUser = (req, res) => {
     fs.writeFileSync('data/users.json', JSON.stringify(users))
 
     res.status(200).json({
-        message: 'Dang ky thanh cong',
+        message: 'Đăng ký thành công',
         data: req.body
     })
 }
 
+// API login
 const loginUser = (req, res) => {
-    const {email, password} = req.body
+    const { email, password } = req.body
 
     let message = {
         username: '',
@@ -61,24 +65,24 @@ const loginUser = (req, res) => {
     let isValidate = false
 
     if (!email || !/^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(email.trim())) {
-        message.email = 'email khong hop le.'
+        message.email = 'Email không hợp lệ.'
         isValidate = true
     }
 
     if (!password || password.trim().length < 8) {
-        message.password = 'password phai tren 8 ky tu.'
+        message.password = 'Password phải trên  8 ký tự.'
         isValidate = true
     }
 
-    const users =JSON.parse(fs.readFileSync('data/users.json'))
+    const users = JSON.parse(fs.readFileSync('data/users.json'))
     const user = users.find(user => user.email === email)
 
     if (!user) res.status(400).json({
-        message: 'Tai khoan khong ton tai.'
+        message: 'Tài khoản không tồn tại.'
     })
 
-    if(user.password !== password) {
-        message.password = 'password khong chinh xac.'
+    if (user.password !== password) {
+        message.password = 'Password không chính xác.'
         isValidate = true
     }
 
@@ -87,175 +91,78 @@ const loginUser = (req, res) => {
     }
 
     res.status(200).json({
-        message: 'Dang nhap thanh cong',
+        message: 'Đăng nhập thành công',
         data: {
             email: email
         }
     })
 }
 
+// API get danh sách User
 const getAllUsers = (req, res) => {
+    let { keyword, page, size } = req.query;
     let users = JSON.parse(fs.readFileSync('data/users.json'));
-    res.json(users);
+    // TODO
+    res.status(200).json({
+        content: users,
+        totalElements: users.length,
+        totalPages: 1,
+        size: 1
+    });
 }
 
-const doesStringHasKeyword = (anyString, keyword) => {
-    if(anyString === undefined){
-        return false;
-    }
-    return anyString.toLowerCase().includes(keyword);
-}
-
-const isInvalid = (any) => {
-    return any !== 0 && (!any || isNaN(any));
-}
-
-const RESULT_PER_PAGE = 3;
-
-const searchUsers = (req, res) => {
+// API xóa User
+const createUser = (req, res) => {
+    const { username, email, password } = req.body // get data request 
     let users = JSON.parse(fs.readFileSync('data/users.json'));
-
-    let keyword = req.query.keyword;
-    let pageIdx = req.query.page;
-    let limit = req.query.limit;
-    
-    pageIdx = Math.max(pageIdx, 0);
-
-    let results = [];
-    let allFound = [];
-    let foundIdx = -1;
-    users.forEach(
-        each => {
-            let found = doesStringHasKeyword(each.username, keyword)
-            || doesStringHasKeyword(each.realname, keyword)
-            || doesStringHasKeyword(each.role, keyword)
-            || doesStringHasKeyword(each.email, keyword)
-
-            if(!found) return;
-
-            allFound.push(each);
-
-            foundIdx++;
-
-            if(isInvalid(pageIdx)){
-                //once pageIdx is invalid, return all results, ignore paging...
-                results.push(each);
-                return;
-            }
-
-            let currentPageIdx = Math.floor(foundIdx / RESULT_PER_PAGE);
-            if(currentPageIdx === pageIdx){
-                results.push(each);
-                return;
-            }
-        }
-    );
-
-    if(limit < results.length){
-        results.length = limit;
+    const user = {
+        id : Math.floor(Math.random() * 1000),
+        username: username,
+        email: email,
+        password: password
     }
-
-    let totalPages = Math.ceil(allFound.length / RESULT_PER_PAGE);
-
-    let paging_result = {
-        content: results,
-        totalElements: allFound.length,
-        totalPages: totalPages,
-        size: RESULT_PER_PAGE
-    }
-
-    res.json(paging_result);
+    users.push(user)
+    fs.writeFileSync('data/users.json', JSON.stringify(users));
+    res.status(200).json(user);
 }
 
-const updateUser = (req, res) => {
-    let userId = req.params.id;
-    let newUserObject = req.body;
-
-    if(isInvalid(userId)){
-        res.status(400);
-        res.send("INVALID PARAMS, expected id to be a number, got: " + userId);
-    }
-    
-    let users = JSON.parse(fs.readFileSync('data/users.json'));
-
-    let onSuccess = (newUserObject, arrayIdx) => {
-        newUserObject.id = users[arrayIdx].id;
-        users[arrayIdx] = newUserObject;
-
-        fs.writeFileSync('data/users.json', JSON.stringify(users));
-
-        res.status(200);
-        res.json(users[arrayIdx]);        
-    }
-
-    let onFailure = (userId) => {
-        res.status(400);
-        res.send("NO SUCH USER WITH ID: " + userId);
-    }
-
-    let foundAt = -1;
-    userId = Number(userId);
-   //  const userExisted = users.findIndex(user => user.email === email)
-    users.every(
-        (each, arrayIdx) => {
-            if(each.id === userId){
-                foundAt = arrayIdx;
-                return false;
-            }
-            return true;
-        }
-    );
-
-    if(foundAt >= 0){
-        onSuccess(newUserObject, foundAt);
-    }
-    else{
-        onFailure(userId);
-    }
-}
-
+// API xóa User
 const deleteUser = (req, res) => {
     let userId = req.params.id;
-
-    if(isInvalid(userId)){
+    if (!userId) {
         res.status(400);
-        res.send("INVALID PARAMS, expected id to be a number, got: " + userId);
+        res.send("Giá trị Id không hợp lệ");
     }
-    
-    let onSuccess = (arrayIdx) => {
-        users.splice(arrayIdx, 1)
-
-        fs.writeFileSync('data/users.json', JSON.stringify(users));
-
-        res.status(200);
-        res.json("SUCCESS");        
-    }
-
-    let onFailure = (userId) => {
-        res.status(400);
-        res.send("NO SUCH USER WITH ID: " + userId);
-    }
-
     let users = JSON.parse(fs.readFileSync('data/users.json'));
-
-    let foundAt = -1;
-    userId = Number(userId);
-    users.every(
-        (each, arrayIdx) => {
-            if(each.id === userId){
-                foundAt = arrayIdx;
-                return false;
-            }
-            return true;
-        }
-    );
-
-    if(foundAt >= 0){
-        onSuccess(foundAt);
+    const indexUser = users.findIndex(user => Number(user.id) === Number(userId))
+    if (indexUser === -1) {
+        res.status(400).send("Id không tồn tại : " + userId);
     }
-    else{
-        onFailure(userId);
-    }
+    users.splice(indexUser, 1);
+    fs.writeFileSync('data/users.json', JSON.stringify(users));
+    res.status(200).json("Xóa thành công");
 }
 
-module.exports = { registerUser , loginUser, getAllUsers, searchUsers, updateUser, deleteUser}
+// API chỉnh sửa User 
+const updateUser = (req, res) => {
+    let userId = req.params.id;
+    let userReq = req.body;
+    if (!userId) {
+        res.status(400);
+        res.send(" Giá trị ID không hợp lệ");
+    }
+    let users = JSON.parse(fs.readFileSync('data/users.json'));
+    const indexUser = users.findIndex(user => Number(user.id) === Number(userId))
+    if (indexUser === -1) {
+        res.status(400).send("Id không tồn tại : " + userId);
+    }
+    let user = users[indexUser]
+    user.username= userReq.username
+    user.email= userReq.email
+    // tương tự set các trường hợp khác 
+    users[indexUser] = user;
+    fs.writeFileSync('data/users.json', JSON.stringify(users));
+    res.status(200).json( user);
+}
+
+module.exports = { registerUser, loginUser,createUser, getAllUsers, updateUser, deleteUser }

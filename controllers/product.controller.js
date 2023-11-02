@@ -17,7 +17,6 @@ const getProducts = (req, res) => {
             price: 2000
         },
     ]
-
     res.json(products)
 }
 
