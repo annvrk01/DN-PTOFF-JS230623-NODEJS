@@ -35,7 +35,7 @@ const config = {
     schemes: ['http', 'https'],
 };
 
-// swaggerAutogen(outputFile, endpointsFiles, config);
+//swaggerAutogen(outputFile, endpointsFiles, config);
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.listen(port, () => {
