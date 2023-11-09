@@ -1,5 +1,15 @@
 const fs = require('fs')
 
+const getViewUser = (req, res) =>{
+    console.log("getView")
+    res.render('pages/users', {
+        username :'Nguyen Van A',
+        num1: 10,
+        num2: 5,
+        arrayNumber: [0,1,2,3,4,5,6,7,8,100,200]
+    });
+}
+
 // API Đăng ký
 const registerUser = (req, res) => {
     // #swagger.tags = ['Users']
@@ -183,4 +193,4 @@ const updateUser = (req, res) => {
     res.status(200).json(user);
 }
 
-module.exports = { registerUser, loginUser, createUser, getAllUsers, updateUser, deleteUser }
+module.exports = { registerUser, loginUser, createUser, getAllUsers, updateUser, deleteUser , getViewUser }
