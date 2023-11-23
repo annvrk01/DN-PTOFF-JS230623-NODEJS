@@ -1,12 +1,52 @@
 const fs = require('fs')
+const connection = require('./../config/database.config')
+const { getUsers } = require('./../repository/user.repository')
 
-const getViewUser = (req, res) =>{
+const COOKIE_NAME = 'user-cookie';
+
+// API login
+const loginUser = async (req, res) => {
+    // #swagger.tags = ['Users']
+    // #swagger.summary = 'Login User'
+    // #swagger.description = 'Login user description'
+
+    const { email, password } = req.body
+    let message = {
+        username: '',
+        email: '',
+        password: '',
+    }
+    let isValidate = false
+
+    if (!email || !/^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(email.trim())) {
+        message.email = 'Email không hợp lệ.'
+        isValidate = true
+    }
+
+    if (!password || password.trim().length < 8) {
+        message.password = 'Password phải trên  8 ký tự.'
+        isValidate = true
+    }
+
+    const users = await getUsers(email,password );
+    if(!users || users.length === 0){
+        res.status(404).json({
+        });
+    }
+
+    res.cookie(COOKIE_NAME, users[0]);
+    res.status(200).json({
+        data: users
+    })
+}
+
+const getViewUser = (req, res) => {
     console.log("getView")
     res.render('pages/users', {
-        username :'Nguyen Van A',
+        username: 'Nguyen Van A',
         num1: 10,
         num2: 5,
-        arrayNumber: [0,1,2,3,4,5,6,7,8,100,200]
+        arrayNumber: [0, 1, 2, 3, 4, 5, 6, 7, 8, 100, 200]
     });
 }
 
@@ -58,7 +98,7 @@ const registerUser = (req, res) => {
         password: password
     }
     users.push(user)
-    fs.writeFileSync('data/users.json', JSON.stringify(users))
+    // fs.writeFileSync('data/users.json', JSON.stringify(users))
 
     res.status(200).json({
         message: 'Đăng ký thành công',
@@ -66,53 +106,6 @@ const registerUser = (req, res) => {
     })
 }
 
-// API login
-const loginUser = (req, res) => {
-    // #swagger.tags = ['Users']
-    // #swagger.summary = 'Login User'
-    // #swagger.description = 'Login user description'
-    const { email, password } = req.body
-
-    let message = {
-        username: '',
-        email: '',
-        password: '',
-    }
-    let isValidate = false
-
-    if (!email || !/^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(email.trim())) {
-        message.email = 'Email không hợp lệ.'
-        isValidate = true
-    }
-
-    if (!password || password.trim().length < 8) {
-        message.password = 'Password phải trên  8 ký tự.'
-        isValidate = true
-    }
-
-    const users = JSON.parse(fs.readFileSync('data/users.json'))
-    const user = users.find(user => user.email === email)
-
-    if (!user) res.status(400).json({
-        message: 'Tài khoản không tồn tại.'
-    })
-
-    if (user.password !== password) {
-        message.password = 'Password không chính xác.'
-        isValidate = true
-    }
-
-    if (isValidate) {
-        res.status(400).json(message)
-    }
-
-    res.status(200).json({
-        message: 'Đăng nhập thành công',
-        data: {
-            email: email
-        }
-    })
-}
 
 // API get danh sách User
 const getAllUsers = (req, res) => {
@@ -193,4 +186,4 @@ const updateUser = (req, res) => {
     res.status(200).json(user);
 }
 
-module.exports = { registerUser, loginUser, createUser, getAllUsers, updateUser, deleteUser , getViewUser }
+module.exports = { registerUser, loginUser, createUser, getAllUsers, updateUser, deleteUser, getViewUser }
