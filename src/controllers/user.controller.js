@@ -1,6 +1,7 @@
 const fs = require('fs')
+const bcrypt = require('bcrypt');
 const connection = require('./../config/database.config')
-const { getUsers } = require('./../repository/user.repository')
+const { getUsers, findAllUsers, findById, insertUser, updateUserById, deleteUserById } = require('./../repository/user.repository')
 
 const COOKIE_NAME = 'user-cookie';
 
@@ -28,8 +29,8 @@ const loginUser = async (req, res) => {
         isValidate = true
     }
 
-    const users = await getUsers(email,password );
-    if(!users || users.length === 0){
+    const users = await getUsers(email, password);
+    if (!users || users.length === 0) {
         res.status(404).json({
         });
     }
@@ -41,13 +42,13 @@ const loginUser = async (req, res) => {
 }
 
 const getViewUser = (req, res) => {
-    console.log("getView")
-    res.render('pages/users', {
-        username: 'Nguyen Van A',
-        num1: 10,
-        num2: 5,
-        arrayNumber: [0, 1, 2, 3, 4, 5, 6, 7, 8, 100, 200]
-    });
+    // console.log("getView")
+    // res.render('pages/users', {
+    //     username: 'Nguyen Van A',
+    //     num1: 10,
+    //     num2: 5,
+    //     arrayNumber: [0, 1, 2, 3, 4, 5, 6, 7, 8, 100, 200]
+    // });
 }
 
 // API Đăng ký
@@ -90,7 +91,6 @@ const registerUser = (req, res) => {
     if (userExisted !== -1) res.status(400).json({
         message: 'Tài khoản đã tồn tại.'
     })
-
     const user = {
         id: Math.floor(Math.random() * 1000),
         username: username,
@@ -106,43 +106,56 @@ const registerUser = (req, res) => {
     })
 }
 
-
 // API get danh sách User
-const getAllUsers = (req, res) => {
-    // #swagger.tags = ['Users']
-    // #swagger.summary = 'Get User'
-    // #swagger.description = 'Get user description'
-    let { keyword, page, size } = req.query;
-    let users = JSON.parse(fs.readFileSync('data/users.json'));
-    // TODO
+const getAllUsers = async (req, res) => {
+    let params = {
+        firstName: req.query.firstName,
+        lastName: req.query.lastName,
+        userName: req.query.userName,
+        email: req.query.email,
+        phoneNumber: req.query.phoneNumber,
+        limit :  req.query.limit,
+        page :  req.query.page
+    }
+    params.offset= (params.page -1 ) * params.limit
+    const users = await findAllUsers(params)
     res.status(200).json({
-        content: users,
-        totalElements: users.length,
-        totalPages: 5,
-        size: 1
-    });
+        data: users
+    })
+};
+
+const getById = async (req, res) => {
+    let userId = req.params.id;
+    if (!userId) {
+        res.status(400);
+        res.send("Giá trị Id không hợp lệ");
+    }
+    const user = await findById(userId)
+    res.status(200).json({
+        data: user
+    })
 }
 
 // API create User
-const createUser = (req, res) => {
+const createUser = async (req, res) => {
     // #swagger.tags = ['Users']
     // #swagger.summary = 'Create User'
     // #swagger.description = 'Create user description'
     const { username, email, password } = req.body // get data request 
-    let users = JSON.parse(fs.readFileSync('data/users.json'));
+    const saltRounds = 5;
+    const salt = bcrypt.genSaltSync(saltRounds);
+    const hash = bcrypt.hashSync(password, salt);
     const user = {
-        id: Math.floor(Math.random() * 1000),
-        username: username,
+        userName: username,
         email: email,
-        password: password
+        password: hash
     }
-    users.push(user)
-    fs.writeFileSync('data/users.json', JSON.stringify(users));
+    let any = await insertUser(user);
     res.status(200).json(user);
 }
 
 // API xóa User
-const deleteUser = (req, res) => {
+const deleteUser = async (req, res) => {
     // #swagger.tags = ['Users']
     // #swagger.summary = 'Delete User'
     // #swagger.description = 'Delete user description'
@@ -151,18 +164,12 @@ const deleteUser = (req, res) => {
         res.status(400);
         res.send("Giá trị Id không hợp lệ");
     }
-    let users = JSON.parse(fs.readFileSync('data/users.json'));
-    const indexUser = users.findIndex(user => Number(user.id) === Number(userId))
-    if (indexUser === -1) {
-        res.status(400).send("Id không tồn tại : " + userId);
-    }
-    users.splice(indexUser, 1);
-    fs.writeFileSync('data/users.json', JSON.stringify(users));
+    await deleteUserById(userId)
     res.status(200).json("Xóa thành công");
 }
 
 // API chỉnh sửa User 
-const updateUser = (req, res) => {
+const updateUser = async (req, res) => {
     // #swagger.tags = ['Users']
     // #swagger.summary = 'Update User'
     // #swagger.description = 'Update user description'
@@ -172,18 +179,16 @@ const updateUser = (req, res) => {
         res.status(400);
         res.send(" Giá trị ID không hợp lệ");
     }
-    let users = JSON.parse(fs.readFileSync('data/users.json'));
-    const indexUser = users.findIndex(user => Number(user.id) === Number(userId))
-    if (indexUser === -1) {
-        res.status(400).send("Id: " + userId + "không tồn tại. ");
+    const user = await findById(userId)
+    if (!user) {
+        res.status(400).send("User không tồn tại. ");
     }
-    let user = users[indexUser]
-    user.username = userReq.username
-    user.email = userReq.email
-    // tương tự set các trường hợp khác 
-    users[indexUser] = user;
-    fs.writeFileSync('data/users.json', JSON.stringify(users));
-    res.status(200).json(user);
+    const userUpdate = { ...user[0], ...userReq }
+    await updateUserById(userUpdate, userId)
+    res.status(200).json({
+        message: 'success',
+        data: userUpdate
+    });
 }
 
-module.exports = { registerUser, loginUser, createUser, getAllUsers, updateUser, deleteUser, getViewUser }
+module.exports = { registerUser, loginUser, createUser, getAllUsers, updateUser, deleteUser, getViewUser, getById }

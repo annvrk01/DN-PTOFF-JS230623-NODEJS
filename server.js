@@ -7,6 +7,7 @@ const cookieRouter = require("./src/routes/cookie.route.js")
 const pagesRouter = require("./src/routes/pages.route.js");
 const sessionRouter = require("./src/routes/session.route.js");
 const session = require('express-session')
+const cors = require('cors')
 
 // npm install --save body-parser
 var bodyParser = require('body-parser')
@@ -15,6 +16,8 @@ var cookieParser = require('cookie-parser');
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger.json');
+
+app.use(cors())
 
 app.use(session({
   resave: true,
