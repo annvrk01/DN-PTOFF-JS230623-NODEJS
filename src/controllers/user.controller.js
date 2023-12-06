@@ -1,21 +1,26 @@
 const fs = require('fs')
+const { doLogin: findMatchedUser, repoGetAllUsers, repoGetUser, repoGetMatchingUser,
+    repoInsertUser, repoUpdateUser, b, c, d, e, f } = require('../repository/user.repo');
+const { matchedKey, validateUserSortParam } = require('../Utils');
 
-const getViewUser = (req, res) =>{
+const DEFAULT_PASSWORD = "abc123!@#A";
+
+const getViewUser = (req, res) => {
     console.log("getView")
     res.render('pages/users', {
-        username :'Nguyen Van A',
+        username: 'Nguyen Van A',
         num1: 10,
         num2: 5,
-        arrayNumber: [0,1,2,3,4,5,6,7,8,100,200]
+        arrayNumber: [0, 1, 2, 3, 4, 5, 6, 7, 8, 100, 200]
     });
 }
 
 // API Đăng ký
-const registerUser = (req, res) => {
+const registerUser = async (req, res) => {
     // #swagger.tags = ['Users']
     // #swagger.summary = 'Register User'
     // #swagger.description = 'Register user description'
-    const { username, email, password } = req.body // get data request 
+    const { username, email, role, password } = req.body // get data request 
     let message = {
         username: '',
         email: '',
@@ -40,25 +45,35 @@ const registerUser = (req, res) => {
 
     if (isValidate) {
         res.status(400).json(message)
+        return;
     }
 
-    // get data từ file json
-    let users = JSON.parse(fs.readFileSync('data/users.json'))
-    // findIndex tìm vị trí phần tử đầu tiên trong mãng thảo mãng điều kiện
-    const userExisted = users.findIndex(user => user.email === email)
+    // 
+    //let users = JSON.parse(fs.readFileSync('data/users.json'))
+    //
+    //const userExisted = users.findIndex(user => user.email === email)
 
-    if (userExisted !== -1) res.status(400).json({
-        message: 'Tài khoản đã tồn tại.'
-    })
+    let userExisted = false;
+
+    let matchedUsers = await findMatchedUser(email, password);
+    //console.log("matchedUsers ", matchedUsers);
+    userExisted = matchedUsers.length > 0;
+
+    if (userExisted) {
+        res.status(400).json({
+            message: 'Tài khoản đã tồn tại.'
+        })
+        return;
+    }
 
     const user = {
-        id: Math.floor(Math.random() * 1000),
         username: username,
         email: email,
+        role: role || "01",
         password: password
     }
-    users.push(user)
-    fs.writeFileSync('data/users.json', JSON.stringify(users))
+
+    let any = repoInsertUser(user);
 
     res.status(200).json({
         message: 'Đăng ký thành công',
@@ -67,7 +82,7 @@ const registerUser = (req, res) => {
 }
 
 // API login
-const loginUser = (req, res) => {
+const loginUser = async (req, res) => {
     // #swagger.tags = ['Users']
     // #swagger.summary = 'Login User'
     // #swagger.description = 'Login user description'
@@ -85,48 +100,69 @@ const loginUser = (req, res) => {
         isValidate = true
     }
 
-    if (!password || password.trim().length < 8) {
-        message.password = 'Password phải trên  8 ký tự.'
-        isValidate = true
-    }
+    //const users = JSON.parse(fs.readFileSync('data/users.json'))
+    //const user = users.find(user => user.email === email)
 
-    const users = JSON.parse(fs.readFileSync('data/users.json'))
-    const user = users.find(user => user.email === email)
+    let matchedUsers = await findMatchedUser(email, password);
+    let userExisted = matchedUsers.length > 0;
 
-    if (!user) res.status(400).json({
-        message: 'Tài khoản không tồn tại.'
-    })
-
-    if (user.password !== password) {
-        message.password = 'Password không chính xác.'
-        isValidate = true
+    if (!userExisted) {
+        res.status(400).json({
+            message: 'Tài khoản không tồn tại.'
+        })
+        return;
     }
 
     if (isValidate) {
-        res.status(400).json(message)
+        res.status(400).json(message);
+        return;
     }
 
+    res.cookie('user-cookie', matchedUsers[0]);
     res.status(200).json({
         message: 'Đăng nhập thành công',
-        data: {
+        user: {
+            id: matchedUsers[0].id,
             email: email
         }
     })
 }
 
 // API get danh sách User
-const getAllUsers = (req, res) => {
+const getAllUsers = async (req, res) => {
     // #swagger.tags = ['Users']
     // #swagger.summary = 'Get User'
     // #swagger.description = 'Get user description'
-    let { keyword, page, size } = req.query;
-    let users = JSON.parse(fs.readFileSync('data/users.json'));
-    // TODO
+    //let { keyword, page, size } = req.query;
+    //let users = JSON.parse(fs.readFileSync('data/users.json'));
+
+    let users = await repoGetAllUsers();
     res.status(200).json({
         content: users,
         totalElements: users.length,
         totalPages: 5,
-        size: 1
+        size: 1,
+    });
+}
+
+const getUserById = async (req, res) => {
+    let user = await repoGetUser(req.params.id);
+
+    res.status(200).json({
+        user: user
+    });
+}
+
+const getCookie = async (req, res) => {
+    res.status(200).json({
+        cookie: req.cookies
+    });
+}
+
+const deleteCookie = async (req, res) => {
+    res.clearCookie('user-cookie');
+    res.status(200).json({
+        message: "Cookies cleared"
     });
 }
 
@@ -135,16 +171,25 @@ const createUser = (req, res) => {
     // #swagger.tags = ['Users']
     // #swagger.summary = 'Create User'
     // #swagger.description = 'Create user description'
-    const { username, email, password } = req.body // get data request 
-    let users = JSON.parse(fs.readFileSync('data/users.json'));
-    const user = {
-        id: Math.floor(Math.random() * 1000),
-        username: username,
-        email: email,
-        password: password
+
+    if(req.body.body){
+        var { username, email, role, firstname, lastname, password } = req.body.body
     }
-    users.push(user)
-    fs.writeFileSync('data/users.json', JSON.stringify(users));
+    else
+        var { username, email, role, firstname, lastname, password } = req.body
+
+    const user = {
+        username: username || "no-name",
+        email: email || "unknown@unknown.com",
+        firstname: firstname || "",
+        lastname: lastname || "",
+        role: role || "0",
+        password: password || DEFAULT_PASSWORD
+    }
+    console.log("createUser ", user);
+    repoInsertUser(user)
+    
+    cached_selectAllUser = null;
     res.status(200).json(user);
 }
 
@@ -158,13 +203,9 @@ const deleteUser = (req, res) => {
         res.status(400);
         res.send("Giá trị Id không hợp lệ");
     }
-    let users = JSON.parse(fs.readFileSync('data/users.json'));
-    const indexUser = users.findIndex(user => Number(user.id) === Number(userId))
-    if (indexUser === -1) {
-        res.status(400).send("Id không tồn tại : " + userId);
-    }
-    users.splice(indexUser, 1);
-    fs.writeFileSync('data/users.json', JSON.stringify(users));
+    console.log("delete with id " + userId);
+    let any = b(userId);
+    cached_selectAllUser = null;
     res.status(200).json("Xóa thành công");
 }
 
@@ -179,18 +220,109 @@ const updateUser = (req, res) => {
         res.status(400);
         res.send(" Giá trị ID không hợp lệ");
     }
-    let users = JSON.parse(fs.readFileSync('data/users.json'));
-    const indexUser = users.findIndex(user => Number(user.id) === Number(userId))
-    if (indexUser === -1) {
-        res.status(400).send("Id: " + userId + "không tồn tại. ");
-    }
-    let user = users[indexUser]
-    user.username = userReq.username
-    user.email = userReq.email
-    // tương tự set các trường hợp khác 
-    users[indexUser] = user;
-    fs.writeFileSync('data/users.json', JSON.stringify(users));
-    res.status(200).json(user);
+
+    console.log("updateUser ", userReq);
+    let any = repoUpdateUser(userId, userReq);
+
+    res.status(200).json(userReq);
 }
 
-module.exports = { registerUser, loginUser, createUser, getAllUsers, updateUser, deleteUser , getViewUser }
+/***
+ * @type {string[]}
+ */
+let cached_selectAllUser = null;
+let userCacheIter = null;
+
+const getMatchingUser = async (req, res) => {
+    let { key, page, size, sort } = req.query;
+    console.log("getMatchingUser, query = ", req.query);
+    page = Number(page);
+    if (!page || isNaN(page) || page <= 0) {
+        page = 1;
+    }
+
+    if (!size || isNaN(size)) {
+        size = 10;
+    }
+
+    const pageSize = Number(size);
+
+    let { sortOrder, sortBy } = validateUserSortParam(sort);
+
+    //_allUser = await repoGetMatchingUser();
+    if(!cached_selectAllUser){
+        if(userCacheIter) {
+            clearInterval(userCacheIter);
+            userCacheIter = null;
+        }
+        cached_selectAllUser = await repoGetMatchingUser();
+        userCacheIter = setInterval(
+            () => {
+                cached_selectAllUser = null;
+                clearInterval(userCacheIter);
+            }, 8000
+        );
+    }
+      
+    let pagedUsers = [...cached_selectAllUser];
+
+    if (key) {
+        pagedUsers = pagedUsers.filter((user) => {
+            return matchedKey(user.username, key)
+                || matchedKey(user.email, key)
+                || matchedKey(user.role, key)
+                || matchedKey(user.firstname, key)
+                || matchedKey(user.lastname, key);
+        })
+        //console.log("pagedUsers matched key: ", pagedUsers)
+    }
+    let totalFound = pagedUsers.length;
+
+    //console.log("sortOrder ", sortOrder)
+    //console.log("sortBy ", sortBy)
+    pagedUsers = pagedUsers.sort(
+        (userA, userB) => {
+            let compareElementA = userA[sortBy] || "";
+            let compareElementB = userB[sortBy] || "";
+
+            if (sortOrder === "asc") {
+                return compareElementA.localeCompare(compareElementB);
+            }
+            return -(compareElementA.localeCompare(compareElementB));
+        }
+    );
+    //console.log("pagedUsers with pageSize: ", pagedUsers)
+
+
+
+    let startIndex = (page - 1) * pageSize;
+    let endIndex = startIndex + (pageSize - 1);
+    //console.log("startIndex ", startIndex)
+    //console.log("endIndex ", endIndex)
+    pagedUsers = pagedUsers.slice(startIndex, endIndex + 1);
+    //console.log("pagedUsers sorted", pagedUsers)
+
+    pagedUsers.forEach(
+        user => {
+            user.password = "HIDDEN";
+        }
+    );
+
+    return res.status(200).json({
+        content: pagedUsers,
+        pageIndex: Math.floor(startIndex / pageSize) + 1,
+        totalElements: totalFound,
+        totalPages: Math.ceil(totalFound / pageSize),
+        size: pageSize,
+        sortOrder: sortOrder,
+        sortBy: sortBy,
+        searchKey: key,
+    });
+}
+
+module.exports = {
+    getMatchingUser,
+    registerUser, loginUser, createUser,
+    getAllUsers, updateUser, deleteUser, getViewUser,
+    getCookie, deleteCookie, getUserById
+}
