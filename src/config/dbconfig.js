@@ -213,3 +213,20 @@ products.forEach(
 //  VALUES
 //  ('1234', '1234@456.com','01','HSB123zxc&*') ;`;
 
+
+// let query = `CREATE TABLE carts (
+//   id INT primary key NOT NULL AUTO_INCREMENT,
+//   userId INT NOT NULL,  
+//   date_added DATETIME DEFAULT CURRENT_TIMESTAMP,
+//   date_updated DATETIME ON UPDATE CURRENT_TIMESTAMP
+// );`
+
+// let query = `CREATE TABLE cartAndProduct (
+//     id INT primary key NOT NULL AUTO_INCREMENT,
+//     cartId INT NOT NULL,  
+//     productId INT NOT NULL,  
+//     date_added DATETIME DEFAULT CURRENT_TIMESTAMP,
+//     date_updated DATETIME ON UPDATE CURRENT_TIMESTAMP
+//   );`
+
+//callQuery(query)

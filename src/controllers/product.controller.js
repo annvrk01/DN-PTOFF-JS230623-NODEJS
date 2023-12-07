@@ -1,9 +1,22 @@
 const fs = require('fs');
-const { repoGetProduct, repoInsertProduct, repoUpdateProduct, repoGetAllProducts } = require('../repository/product.repo');
+const { repoGetProduct, repoInsertProduct, repoUpdateProduct, repoGetAllProducts, repoDeleteProduct } = require('../repository/product.repo');
 const { validateProductSortParam, matchedKey } = require('../Utils');
+const multer = require('multer')
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/')
+  },
+  filename: function (req, file, cb) {
+    cb(null, "AtMS" + Date.now() + '.jpg') //Appending .jpg
+  }
+})
+const upload = multer({ storage: storage });
 
 const PAGE_SIZE = 20;
 
+const clearCache = () => {
+    cached_selectAllProduct = null;
+}
 const getProducts = async (req, res) => {
     // #swagger.tags = ['Product']
     // #swagger.summary = 'Get all products'
@@ -37,18 +50,20 @@ const getProductById = (req, res) => {
     res.status(400).json(products)
 }
 
-const createProduct= (req,res)=>{
+
+const createProduct= async (req,res)=>{
     // #swagger.tags = ['Product']
     // #swagger.summary = 'Create Product'
     // #swagger.description = 'Create Product description'
-    const {name, unitprice, categoryId } = req.body    
-    const product = {
-        name: name,
-        unitprice : unitprice,
-        categoryId : categoryId
-    }
-    let any = repoInsertProduct(product);
+    let product = req.body;
+    let any = await repoInsertProduct(product);
+    clearCache();
     res.status(200).json(product)
+}
+
+const addProductImage = (req, res, next) => {
+    console.log("got image ?");
+    res.status(200).json("Success");    
 }
 
 const updateProducts = (req, res) => {
@@ -61,19 +76,27 @@ const updateProducts = (req, res) => {
         res.status(400);
         res.send(" Giá trị ID không hợp lệ");
     }
+    clearCache();
     let any = repoUpdateProduct(productId, productReq)
     res.status(200).json(productReq);
 }
-const deleteProduct =(req,res)=>{
+
+const deleteProduct = async (req,res) =>{
     // #swagger.tags = ['Product']
     // #swagger.summary = 'Delete product'
     // #swagger.description = 'Delete product description'
-    let productId = req.params.id;
-    if (!productId) {
+    
+
+    //console.log("req ", req);
+    //console.log("req.params ", req.params);
+    let productId = req?.params?.id || req;
+    productId = Number(productId);
+    if (productId < 0) {
         res.status(400);
         res.send("Giá trị Id không hợp lệ");
     }
-    let any = deleteProduct(productId)
+    clearCache();
+    let any = await repoDeleteProduct(productId)
     res.status(200).json("Xóa thành công");
 }
 
@@ -127,8 +150,8 @@ const getMatchingProduct = async (req, res) => {
     //console.log("sortBy ", sortBy)
     pagedProducts = pagedProducts.sort(
         (productA, productB) => {
-            let compareElementA = productA[sortBy] || "";
-            let compareElementB = productB[sortBy] || "";
+            let compareElementA = productA[sortBy].toString() || "";
+            let compareElementB = productB[sortBy].toString() || "";
 
             if (sortOrder === "asc") {
                 return compareElementA.localeCompare(compareElementB);
@@ -147,12 +170,6 @@ const getMatchingProduct = async (req, res) => {
     pagedProducts = pagedProducts.slice(startIndex, endIndex + 1);
     //console.log("pagedUsers sorted", pagedUsers)
 
-    pagedProducts.forEach(
-        user => {
-            user.password = "HIDDEN";
-        }
-    );
-
     return res.status(200).json({
         content: pagedProducts,
         pageIndex: Math.floor(startIndex / pageSize) + 1,
@@ -165,4 +182,4 @@ const getMatchingProduct = async (req, res) => {
     });
 }
 
-module.exports = {getProducts, getProductById, createProduct,updateProducts,deleteProduct, getMatchingProduct }
+module.exports = {getProducts, getProductById, createProduct, addProductImage, updateProducts,deleteProduct, getMatchingProduct }

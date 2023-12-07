@@ -2,6 +2,7 @@ const express = require("express")
 var cors = require('cors');
 var app = express(); 
 const router = require("./src/routes/router.js");
+const cartRouter = require("./src/routes/cart.route.js");
 const productRouter = require("./src/routes/product.route.js");
 const userRouter = require("./src/routes/user.route.js");
 const pagesRouter = require("./src/routes/pages.route.js");
@@ -44,6 +45,7 @@ app.use(cookieParser());
 app.use("/api", router)
 app.use("/api/user", userRouter)
 app.use("/api/products", productRouter)
+app.use("/api/carts", cartRouter)
 
 app.post("/api/file",
   upload.single('avatar'),

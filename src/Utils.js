@@ -102,8 +102,8 @@ const validateProductSortParam = function(sort){
   if(sortOrder.startsWith("des")){
     sortOrder = 'des';
   }
-  const availableUsernameKey =   ["title_text", "desc_text", "likes_count", "visit_count", "download_count", "price", "geometry"];
-  if(!availableUsernameKey.includes(sortBy)){
+  const availableSortBys =   ["title_text", "desc_text", "likes_count", "visit_count", "download_count", "price", "geometry"];
+  if(!availableSortBys.includes(sortBy)){
     logError("no such product column name");
     return {
       sortOrder: sortOrder,
@@ -117,4 +117,59 @@ const validateProductSortParam = function(sort){
   };  
 }
 
-module.exports = {matchedKey, validateUserSortParam, validateProductSortParam}
+
+const validateCartSortParam = function(sort){  
+  let logError = (reason = "") => {
+    console.error("IllegalArgumentException, " + reason + ", got sort = " + sort);
+  };
+  let defaultReturn = {    
+    sortOrder: "asc",
+    sortBy: "username"
+  };  
+  if(!sort) {
+    logError(sort);
+    return defaultReturn;
+  }
+
+  sort += "";
+  sort = sort.replace(" ", "");
+  sort = sort.toLowerCase();
+  let sortSplitted = sort.split(",");
+  let sortOrder = sortSplitted[0];
+  let sortBy = sortSplitted[1];
+
+  if(!sortOrder || !sortBy){
+    logError("must contains both sort order and cart column name, found none")
+    return defaultReturn;
+  } 
+
+  if(!sortOrder.startsWith("asc") && !sortOrder.startsWith("des")){
+      logError("no such order, expect 'asc' or 'des'")
+      return defaultReturn;
+  }
+
+  const availableSortBys =   ["username", "totalprice", "id", "date_added", "date_updated"];
+  if(!availableSortBys.includes(sortBy)){
+    logError("no such product column name");
+    return {
+      sortOrder: sortOrder,
+      sortBy: defaultReturn.sortBy
+    };
+  }
+
+  if(sortOrder.startsWith("asc")){
+    sortOrder = 'asc';
+  }
+  if(sortOrder.startsWith("des")){
+    sortOrder = 'des';
+  }
+  
+  //...
+
+  return {    
+    sortOrder: sortOrder,
+    sortBy: sortBy
+  };  
+}
+
+module.exports = {matchedKey, validateUserSortParam, validateProductSortParam, validateCartSortParam}
