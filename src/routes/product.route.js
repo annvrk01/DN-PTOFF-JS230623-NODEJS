@@ -3,7 +3,8 @@ const express = require("express");
 const { getProducts, 
   getMatchingProduct, createProduct, 
   addProductImage, addProductImageAsBase64,
-  getProductImages, getBaseCategories,
+  getProductImages,
+  getBaseCategories, getAllCategories,
   updateProducts,deleteProduct, getProductById} = require("../controllers/product.controller");
 const router = express.Router();
 const multer = require('multer')
@@ -22,6 +23,7 @@ const upload = multer({ storage: storage });
 router.post('/images', addProductImageAsBase64);
 router.get('/images/:productId', getProductImages);
 router.get('/base-category/', getBaseCategories);
+router.get('/category/', getAllCategories);
 
 router.get('/', getMatchingProduct);
 router.get('/:productId', getProductById);

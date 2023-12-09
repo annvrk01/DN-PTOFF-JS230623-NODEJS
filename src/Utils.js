@@ -102,7 +102,7 @@ const validateProductSortParam = function(sort){
   if(sortOrder.startsWith("des")){
     sortOrder = 'des';
   }
-  const availableSortBys =   ["title_text", "desc_text", "likes_count", "visit_count", "download_count", "price", "geometry"];
+  const availableSortBys =   ["title_text", "desc_text", "category_name", "likes_count", "visit_count", "download_count", "price", "geometry"];
   if(!availableSortBys.includes(sortBy)){
     logError("no such product column name");
     return {

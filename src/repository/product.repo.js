@@ -9,12 +9,15 @@ class ProductRepo {
     let selectAllProductJoinImgs = `
         SELECT 
             products.*,
+            category.name as category_name,
             group_concat(imgs.id SEPARATOR ', ') as imageIds, 
             group_concat(imgs.name SEPARATOR ', ') as imageNames
         FROM
             root.products
                 INNER JOIN
             root.imgs ON products.id = imgs.productId
+                INNER JOIN
+            root.category ON products.categoryId = category.id
         group by products.id;`;
 
     return queryPromise(selectAllProductJoinImgs)
@@ -27,6 +30,11 @@ class ProductRepo {
 
   static getBaseCategories() {
     let query = `SELECT * FROM category WHERE parentId = 0`;
+    return queryPromise(query);
+  }
+
+  static getAllCategories(){    
+    let query = `SELECT * FROM category`;
     return queryPromise(query);
   }
 
@@ -43,10 +51,12 @@ class ProductRepo {
     let is_gameReady = 1;
 
     let query = `INSERT INTO products  
-      (title_text, desc_text, likes_count, visit_count, download_count, price, geometry)
+      (title_text, desc_text, categoryId, 
+        likes_count, visit_count, download_count, price, geometry)
       VALUES (?) `;
 
-    let values = [product.title_text, product.desc_text,
+    let values = [
+      product.title_text, product.desc_text, product.categoryId,
       0, 0, 0,
     Number(product.price) || 0, product.geometry];
     return queryPromise(query, values);

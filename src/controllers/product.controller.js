@@ -50,7 +50,7 @@ const getProductById = async (req, res) => {
     if(product instanceof Array){
         product = product[0];
     }
-    
+
     let imgs = await ProductRepo.getProductImages(productId);
     console.log("productImage ", imgs);
     imgs.forEach(
@@ -121,6 +121,12 @@ const getBaseCategories = async (req, res) => {
     let baseCategories = await ProductRepo.getBaseCategories();
     res.status(200).json({
         baseCategories: baseCategories
+    });
+}
+const getAllCategories = async (req, res) => {
+    let allCategories = await ProductRepo.getAllCategories();
+    res.status(200).json({
+        categories: allCategories
     });
 }
 
@@ -198,7 +204,8 @@ const getMatchingProduct = async (req, res) => {
         pagedProducts = pagedProducts.filter((product) => {
             return matchedKey(product.title_text, key)
                 || matchedKey(product.desc_text, key)
-                || matchedKey(product.price, key);
+                || matchedKey(product.price, key)
+                || matchedKey(product.category_name, key)                
         })
         //console.log("pagedUsers matched key: ", pagedUsers)
     }
@@ -254,6 +261,7 @@ const getMatchingProduct = async (req, res) => {
 module.exports = {
     getProducts, getProductById, createProduct,
     addProductImage, addProductImageAsBase64, 
-    getProductImages, getBaseCategories,
+    getProductImages, 
+    getBaseCategories, getAllCategories,
     updateProducts, deleteProduct, getMatchingProduct
 }
