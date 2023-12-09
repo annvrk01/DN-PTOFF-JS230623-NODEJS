@@ -4,7 +4,7 @@ const { validateProductSortParam, matchedKey } = require('../Utils');
 const multer = require('multer');
 var storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'uploads/')
+        cb(null, 'productImage/')
     },
     filename: function (req, file, cb) {
         cb(null, "AtMS" + Date.now() + '.jpg') //Appending .jpg
@@ -52,7 +52,7 @@ const getProductById = async (req, res) => {
     }
 
     let imgs = await ProductRepo.getProductImages(productId);
-    console.log("productImage ", imgs);
+    //console.log("productImage ", imgs);
     imgs.forEach(
         img => {
             img.file = "unavailable";
@@ -71,11 +71,12 @@ const createProduct = async (req, res) => {
     // #swagger.summary = 'Create Product'
     // #swagger.description = 'Create Product description'
     let product = req.body;
+    console.log("createProduct ",req.body);
+
     let any = await ProductRepo.repoInsertProduct(product);
     clearCache();
 
     product.id = any.insertId;
-    console.log("added product with id " + product.id);
     res.status(200).json(product)
 }
 

@@ -79,7 +79,7 @@ class ProductRepo {
           Number(productId),
           eachImageBase64String
         );
-        let fullFileName = "data/uploads/" + fileName;
+        let fullFileName = "data/productImage/" + fileName;
 
         eachImageBase64String = eachImageBase64String.split(';base64,').pop();
 
@@ -151,11 +151,11 @@ class ProductRepo {
 
   static repoUpdateProduct(id, product) {
     let query = `UPDATE products  
-    SET title_text = '` + product.title_text
-      + `', desc_text = '` + product.desc_text
-      + `', price = ` + product.price
-      + `, geometry = '` + product.geometry + `'
-    WHERE id = ` + id + `;`;
+      SET title_text = "` + product.title_text
+      + `", desc_text = "` + product.desc_text
+      + `", price = ` + product.price
+      + `, geometry = "` + product.geometry 
+      + `" WHERE id = ` + id + `;`;
 
     return queryPromise(query)
   }
