@@ -1,14 +1,14 @@
 const fs = require('fs');
-const { repoGetProduct, repoInsertProduct, repoUpdateProduct, repoGetAllProducts, repoDeleteProduct } = require('../repository/product.repo');
+const { ProductRepo } = require('../repository/product.repo');
 const { validateProductSortParam, matchedKey } = require('../Utils');
-const multer = require('multer')
+const multer = require('multer');
 var storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/')
-  },
-  filename: function (req, file, cb) {
-    cb(null, "AtMS" + Date.now() + '.jpg') //Appending .jpg
-  }
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/')
+    },
+    filename: function (req, file, cb) {
+        cb(null, "AtMS" + Date.now() + '.jpg') //Appending .jpg
+    }
 })
 const upload = multer({ storage: storage });
 
@@ -22,9 +22,9 @@ const getProducts = async (req, res) => {
     // #swagger.summary = 'Get all products'
     // #swagger.description = 'Retrieve all products in database'
     console.log("getProducts");
-    const {id} = req.params;
+    const { id } = req.params;
 
-    let products = await ((id) ? repoGetProduct(id) : repoGetAllProducts());
+    let products = await ((id) ? ProductRepo.repoGetProduct(id) : ProductRepo.repoGetAllProducts());
     //console.log("products ", products)
     //get all user
     let pageCount = Math.ceil(products.length / PAGE_SIZE);
@@ -37,33 +37,91 @@ const getProducts = async (req, res) => {
     });
 }
 
-const getProductById = (req, res) => {
+const getProductById = async (req, res) => {
     // #swagger.tags = ['Product']
     // #swagger.summary = 'Get product by Id'
     // #swagger.description = 'Get product by Id description'
-    const {productId} = req.params 
-    let products = repoGetProduct(productId)
-    if (!productId) {
+    const { productId } = req.params
+    if (isNaN(Number(productId))) {
         res.status(400);
         res.send(" Giá trị ID không hợp lệ");
     }
-    res.status(400).json(products)
+    let product = await ProductRepo.repoGetProduct(productId)
+    if(product instanceof Array){
+        product = product[0];
+    }
+    
+    let imgs = await ProductRepo.getProductImages(productId);
+    console.log("productImage ", imgs);
+    imgs.forEach(
+        img => {
+            img.file = "unavailable";
+        }
+    );
+    product.imgs = imgs;   
+
+    res.status(200).json({
+        product: product
+    })
 }
 
 
-const createProduct= async (req,res)=>{
+const createProduct = async (req, res) => {
     // #swagger.tags = ['Product']
     // #swagger.summary = 'Create Product'
     // #swagger.description = 'Create Product description'
     let product = req.body;
-    let any = await repoInsertProduct(product);
+    let any = await ProductRepo.repoInsertProduct(product);
     clearCache();
+
+    product.id = any.insertId;
+    console.log("added product with id " + product.id);
     res.status(200).json(product)
 }
 
 const addProductImage = (req, res, next) => {
     console.log("got image ?");
-    res.status(200).json("Success");    
+    res.status(200).json("Success");
+}
+
+const addProductImageAsBase64 = async (req, res) => {
+    //console.log("got image ? req.body = ", req.body);
+    let { productId, images } = req.body;
+    if(isNaN(Number(productId))){
+        console.warn("productId must be a number, got", productId) ;        
+        res.status(400).json("invalid id");
+        return;
+    }
+
+    const addedImgs = await ProductRepo.saveImagesToLocal(images, productId);
+    let any = await ProductRepo.repoAddProductImages(addedImgs, productId);
+    res.status(200).json("Success");
+}
+
+const getProductImages = async (req, res) => {
+    let productId = req.params.productId;
+    let imgs = await ProductRepo.getProductImages(productId);
+    console.log("productImage ", imgs);
+    imgs.forEach(
+        img => {
+            // if(ProductRepo.isOnlyOnLocal(img))
+            // {
+            //  return;   
+            // }
+            img.file = "unavailable";
+        }
+    );
+    
+    res.status(200).json({
+        imgs: imgs
+    });
+}
+
+const getBaseCategories = async (req, res) => {
+    let baseCategories = await ProductRepo.getBaseCategories();
+    res.status(200).json({
+        baseCategories: baseCategories
+    });
 }
 
 const updateProducts = (req, res) => {
@@ -77,15 +135,15 @@ const updateProducts = (req, res) => {
         res.send(" Giá trị ID không hợp lệ");
     }
     clearCache();
-    let any = repoUpdateProduct(productId, productReq)
+    let any = ProductRepo.repoUpdateProduct(productId, productReq)
     res.status(200).json(productReq);
 }
 
-const deleteProduct = async (req,res) =>{
+const deleteProduct = async (req, res) => {
     // #swagger.tags = ['Product']
     // #swagger.summary = 'Delete product'
     // #swagger.description = 'Delete product description'
-    
+
 
     //console.log("req ", req);
     //console.log("req.params ", req.params);
@@ -96,7 +154,7 @@ const deleteProduct = async (req,res) =>{
         res.send("Giá trị Id không hợp lệ");
     }
     clearCache();
-    let any = await repoDeleteProduct(productId)
+    let any = await ProductRepo.repoDeleteProduct(productId)
     res.status(200).json("Xóa thành công");
 }
 
@@ -120,12 +178,12 @@ const getMatchingProduct = async (req, res) => {
 
     let { sortOrder, sortBy } = validateProductSortParam(sort);
 
-    if(!cached_selectAllProduct){
-        if(productCacheIter) {
+    if (!cached_selectAllProduct) {
+        if (productCacheIter) {
             clearInterval(productCacheIter);
             productCacheIter = null;
         }
-        cached_selectAllProduct = await repoGetAllProducts();
+        cached_selectAllProduct = await ProductRepo.repoGetAllProducts();
         productCacheIter = setInterval(
             () => {
                 cached_selectAllProduct = null;
@@ -133,7 +191,7 @@ const getMatchingProduct = async (req, res) => {
             }, 8000
         );
     }
-      
+
     let pagedProducts = [...cached_selectAllProduct];
 
     if (key) {
@@ -170,6 +228,17 @@ const getMatchingProduct = async (req, res) => {
     pagedProducts = pagedProducts.slice(startIndex, endIndex + 1);
     //console.log("pagedUsers sorted", pagedUsers)
 
+    pagedProducts.forEach(
+        product => {
+
+            /***
+             * @type {string}
+             */
+            let imgs = product.imageIds;
+            imgs = imgs.split(",");
+            product.imgs = imgs;
+        }
+    )
     return res.status(200).json({
         content: pagedProducts,
         pageIndex: Math.floor(startIndex / pageSize) + 1,
@@ -182,4 +251,9 @@ const getMatchingProduct = async (req, res) => {
     });
 }
 
-module.exports = {getProducts, getProductById, createProduct, addProductImage, updateProducts,deleteProduct, getMatchingProduct }
+module.exports = {
+    getProducts, getProductById, createProduct,
+    addProductImage, addProductImageAsBase64, 
+    getProductImages, getBaseCategories,
+    updateProducts, deleteProduct, getMatchingProduct
+}

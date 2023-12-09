@@ -1,12 +1,15 @@
 const express = require("express")
 var cors = require('cors');
 var app = express(); 
+
+const path = require('path')
+app.use('/static', express.static(path.join(__dirname, 'data')))
+
 const router = require("./src/routes/router.js");
 const cartRouter = require("./src/routes/cart.route.js");
 const productRouter = require("./src/routes/product.route.js");
 const userRouter = require("./src/routes/user.route.js");
 const pagesRouter = require("./src/routes/pages.route.js");
-
 app.use(cors());
 const multer = require('multer')
 var storage = multer.diskStorage({
@@ -34,7 +37,9 @@ var bodyParser = require('body-parser')
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./swagger.json');
 
-app.use(bodyParser.json());       // to support JSON-encoded bodies
+//app.use(bodyParser.json());       // to support JSON-encoded bodies
+app.use(bodyParser.json({limit: '1024mb'}));
+
 app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
   extended: true
 }))

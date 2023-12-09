@@ -62,8 +62,8 @@ const getMatchingcart = async (req, res) => {
     let totalFound = pagedCarts.length;
     pagedCarts = pagedCarts.sort(
         (cartA, cartB) => {
-            let compareElementA = cartA[sortBy]?.toString() || "";
-            let compareElementB = cartB[sortBy]?.toString() || "";
+            let compareElementA = (cartA[sortBy]) ? cartA[sortBy].toString() : "";
+            let compareElementB = (cartB[sortBy]) ? cartB[sortBy].toString() : "";
 
             if (sortOrder === "asc") {
                 return compareElementA.localeCompare(compareElementB);
