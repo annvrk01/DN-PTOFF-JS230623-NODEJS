@@ -1,7 +1,7 @@
 const fs = require('fs')
 const bcrypt = require('bcrypt');
 const connection = require('./../config/database.config')
-const { getUsers, findAllUsers, findById, insertUser, updateUserById, deleteUserById } = require('./../repository/user.repository')
+const { getUsers, findAllUsers, findById, insertUser, updateUserById, deleteUserById, findAllUsersCount } = require('./../repository/user.repository')
 
 const COOKIE_NAME = 'user-cookie';
 
@@ -119,8 +119,13 @@ const getAllUsers = async (req, res) => {
     }
     params.offset= (params.page -1 ) * params.limit
     const users = await findAllUsers(params)
+    const dataCount = await findAllUsersCount(params)
+    console.log('count', dataCount[0]['COUNT(id)'])
+
+    
     res.status(200).json({
-        data: users
+        data: users,
+        count:dataCount[0]['COUNT(id)'] 
     })
 };
 
@@ -132,7 +137,7 @@ const getById = async (req, res) => {
     }
     const user = await findById(userId)
     res.status(200).json({
-        data: user
+        data: user[0]
     })
 }
 
@@ -148,7 +153,8 @@ const createUser = async (req, res) => {
     const user = {
         userName: username,
         email: email,
-        password: hash
+        password: hash,
+        is_actived : 1
     }
     let any = await insertUser(user);
     res.status(200).json(user);

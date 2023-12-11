@@ -35,6 +35,28 @@ let findAllUsers = (params) => {
     })
 }
 
+
+let findAllUsersCount = (params) => {
+    let query = "SELECT COUNT(id) FROM users WHERE is_actived = 1 ";
+    if(params.email){
+        query+= " AND email = "+"'" + params.email + "'";
+    } 
+    if(params.userName){
+        query+= " AND username = "+"'" + params.userName + "'";
+    }
+    if(params.firstName){
+        query+= " AND first_name LIKE '%"+params.firstName+"%'";
+    } 
+    return new Promise((resolve, reject) => {
+        connection.query(query,(err, result)=> {
+            if(err) {
+                return reject(err)
+            }
+            resolve(result)
+        })
+    })
+}
+
 let findById=(id)=>{
     let query = "SELECT * FROM users WHERE id= "+id;
     return new Promise((resolve, reject) => {
@@ -49,8 +71,8 @@ let findById=(id)=>{
 
 let insertUser = (user) => {
     let query = 
-    "INSERT INTO users (username,email,password) VALUES "
-     + "('" + user.userName + "','" +user.email+ "','" +user.password+ "');";
+    "INSERT INTO users (username,email,password, is_actived ) VALUES "
+     + "('" + user.userName + "','" +user.email+ "','" +user.password+ "' ,'" +user.is_actived+ "');";
 
      return new Promise((resolve, reject) => {
         connection.query(query,(err, result)=> {
@@ -94,4 +116,4 @@ let deleteUserById =  (userId) => {
     })
 }
 
-module.exports = { getUsers , findAllUsers, findById, insertUser, updateUserById , deleteUserById }
+module.exports = { getUsers , findAllUsers, findById, insertUser, updateUserById , deleteUserById , findAllUsersCount}
