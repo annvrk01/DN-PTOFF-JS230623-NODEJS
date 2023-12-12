@@ -165,7 +165,6 @@ const deleteProduct = async (req, res) => {
     res.status(200).json("Xóa thành công");
 }
 
-
 var cached_selectAllProduct = null;
 var productCacheIter = null;
 
