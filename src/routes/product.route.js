@@ -1,6 +1,6 @@
 const express = require("express");
 //const checkLogin = require("../middleware/checkUser.middleware");
-const { getProducts, 
+const { getProducts,  getSimilarProducts,
   getMatchingProduct, createProduct, 
   addProductImage, addProductImageAsBase64,
   getProductImages,
@@ -30,5 +30,6 @@ router.get('/:productId', getProductById);
 router.post('/', createProduct);
 router.put('/:id', updateProducts);
 router.delete('/:id', deleteProduct)
+router.post('/similar', getSimilarProducts);
 
 module.exports = router

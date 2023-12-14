@@ -154,6 +154,7 @@ class ProductRepo {
       SET title_text = "` + product.title_text
       + `", desc_text = "` + product.desc_text
       + `", price = ` + product.price
+      + `, categoryId = ` + product.categoryId
       + `, geometry = "` + product.geometry 
       + `" WHERE id = ` + id + `;`;
 

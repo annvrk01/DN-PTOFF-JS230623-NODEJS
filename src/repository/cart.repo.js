@@ -1,6 +1,25 @@
 const connection = require('../config/dbconfig');
 
+const CartStatusEnum = {
+  BROWSING : 0, 
+  AWAITING_PAYMENT : 1, 
+  PAID : 2, 
+}
+
 class CartRepo {
+  static async checkOutCart(cartId){
+    if(isNaN(cartId) && !cartId) return;
+
+    let query = ` 
+      UPDATE 
+        carts 
+      SET
+        status = ` + CartStatusEnum.AWAITING_PAYMENT + `
+      WHERE
+        id = `+ cartId + `;`;
+    return queryPromise(query)
+  }
+
   static async repoGetAllCarts() {
     let query = ` 
       SELECT 
@@ -8,6 +27,7 @@ class CartRepo {
         group_concat(products.title_text SEPARATOR ',') as productnames, 
         group_concat(products.id SEPARATOR ',') as productids,
         sum(price) as totalprice,
+        carts.status,
         carts.date_added, carts.date_updated
       FROM
         root.carts

@@ -195,8 +195,21 @@ const getMatchingcart = async (req, res) => {
     });
 }
 
+const checkOutCart = async (req, res) => {
+    let cartId = req.params.cartId;
+    if(cartId < 1){
+        console.error("checkOutCart: ", cartId);
+        res.status(400).send("UNKNOWN cartId")
+        return;
+    }
+    console.log("checkOutCart: ", cartId);
+    let any = await CartRepo.checkOutCart(Number(cartId));
+    return res.status(200).send("SUCCESS")
+}
+
 module.exports = {
     getMatchingcart , getCartByUserId, 
     createCartForUser, addToCart,
-    removeFromCart 
+    removeFromCart , 
+    checkOutCart
 }
